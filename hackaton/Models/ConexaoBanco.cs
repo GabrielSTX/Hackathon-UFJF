@@ -1,6 +1,6 @@
 ﻿namespace hackaton.Models
 {
-    internal class ConexaoBanco
+    public class ConexaoBanco
     {
         public string Server { get; set; }
         public int Port { get; set; }

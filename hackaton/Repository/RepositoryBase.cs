@@ -12,25 +12,30 @@ namespace hackaton.Repository
 
         public RepositoryBase()
         {
-            ObterConfigConexao();
+            ConfigConexao = ObterConfigConexao();
         }
 
-        protected void ObterConfigConexao()
+        protected ConexaoBanco ObterConfigConexao()
         {
-            var objeto = JObject.Parse(Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "appsettings.json"));
-            ConfigConexao = objeto["ConexaoBanco"].ToObject<ConexaoBanco>();
+            using var reader = new StreamReader(Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "appsettings.json"));
+            var appsettings = reader.ReadToEnd();
+            var objeto = JObject.Parse(appsettings);
+            return objeto["ConexaoBanco"].ToObject<ConexaoBanco>();
         }
         protected NpgsqlConnection ObterConexao()
         {
+            return ObterConexao(ConfigConexao);
+        }
+        protected NpgsqlConnection ObterConexao(ConexaoBanco config)
+        {
             if ((Conexao == null) || (Conexao.State != ConnectionState.Open))
             {
-                Conexao = new NpgsqlConnection(ConfigConexao.ToString());
+                Conexao = new NpgsqlConnection(config.ToString());
                 Conexao.Open();
             }
 
             return Conexao;
         }
-
         public void Dispose()
         {
             if ((Conexao != null) && (Conexao.State != ConnectionState.Closed))

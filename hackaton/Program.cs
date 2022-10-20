@@ -1,3 +1,5 @@
+using hackathon.Controllers;
+
 namespace hackaton
 {
     public class Program
@@ -9,6 +11,8 @@ namespace hackaton
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+
+            InicializacaoController.Iniciar();
 
             builder.Services.AddCors(config =>
             {

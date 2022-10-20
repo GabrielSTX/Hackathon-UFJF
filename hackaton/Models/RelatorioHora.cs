@@ -6,7 +6,6 @@
         public int IdDemanda { get; set; }
         public int IdUsuario { get; set; }
         public DateTime Data { get; set; }
-        public DateTime DataInicio { get; set; }
-        public DateTime DataFim { get; set; }
+        public double Horas { get; set; }
     }
 }

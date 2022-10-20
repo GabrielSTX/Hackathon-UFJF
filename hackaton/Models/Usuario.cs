@@ -5,7 +5,6 @@
         public int Id { get; set; }
         public string Nome { get; set; }
         public float PesoEficiencia { get; set; }
-        public IList<Time> ListaTime { get; set; }
-        public IList<RelatorioHora> listaRelatorioHora { get; set; }
+        public IList<RelatorioHora> ListaRelatorioHora { get; set; }
     }
 }
