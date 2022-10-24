@@ -11,9 +11,9 @@ namespace hackaton.Repository
             return ObterLista(comando);
         }
 
-        public IList<RelatorioHora> ObterPorDemandaUsuario(int demandaId, int usuarioId)
+        public IList<RelatorioHora> ObterPorDemanda(int demandaId)
         {
-            var comando = $"SELECT * FROM public.relatorio_hora where demanda_id = {demandaId} and usuario_id = {usuarioId}";
+            var comando = $"SELECT * FROM public.relatorio_hora where demanda_id = {demandaId}";
             return ObterLista(comando);
         }
 
@@ -33,8 +33,8 @@ namespace hackaton.Repository
             {
                 var relatorio = new RelatorioHora();
                 relatorio.Id = Convert.ToInt32(reader["id"]);
-                relatorio.IdDemanda = Convert.ToInt32(reader["demanda_id"]);
-                relatorio.IdUsuario = Convert.ToInt32(reader["usuario_id"]);
+                relatorio.DemandaId = Convert.ToInt32(reader["demanda_id"]);
+                relatorio.UsuarioId = Convert.ToInt32(reader["usuario_id"]);
                 relatorio.Data = Convert.ToDateTime(reader["data"]);
                 relatorio.Horas = Convert.ToDouble(reader["horas"]);
 

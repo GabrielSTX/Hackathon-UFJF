@@ -14,24 +14,74 @@ namespace hackaton.Controllers
     public class DemandaController : ControllerBase
     {
         [HttpPost, AllowAnonymous, Route("VerificaSprintLucrativa")]
-        public bool VerificaSprintLucrativa([FromBody] FiltroData data)
+        public Resposta VerificaSprintLucrativa([FromBody] FiltroData data)
         {
             using var repository = new RelatorioHoraRepository();
             var historicos = repository.ObterPorPeriodo(data.Inicio, data.Fim);
 
             var horasTotais = ObterHorasTotais(historicos);
             var horasTotaisEquipe = ObterHorasTotaisEquipe(historicos);
-            return horasTotaisEquipe < horasTotais;
+
+            var resposta = new Resposta() 
+            { 
+                Resultado = horasTotaisEquipe < horasTotais,
+                Mensagem = $"A equipe resolveu {horasTotais} horas estimadas utilizando {horasTotaisEquipe} horas de trabalho."
+            };
+
+            return resposta;
         }       
 
-        [HttpPost, AllowAnonymous, Route("VerificaDemandaLucrativa")]
-        public bool VerificaDemandaLucrativa([FromBody] Demanda demanda)
+        [HttpPost, AllowAnonymous, Route("VerificaDemandaLucrativa/{demandaId}")]
+        public Resposta VerificaDemandaLucrativa([FromRoute] int demandaId)
+        {
+            using var repository = new DemandaRepository();
+            var demanda = repository.ObterDemanda(demandaId);
+            var horaEstimada = demanda.HoraDemanda * demanda.PesoComplexidade;
+            var horasTotais = ObterHoraTotalProjeto(demanda);
+
+            var resposta = new Resposta()
+            {
+                Resultado = horaEstimada > horasTotais
+            };
+
+            if (resposta.Resultado)
+                resposta.Mensagem = $"Sim, a equipe gastou um total de {horasTotais} horas para um projeto de {horaEstimada} horas.";
+            else
+                resposta.Mensagem = $"Não, a equipe gastou um total de {horasTotais} horas para um projeto de {horaEstimada} horas.";
+
+            return resposta;
+        }
+
+        [HttpPost, AllowAnonymous, Route("VerificaDemandaVaiSerLucrativa")]
+        public Resposta VerificaDemandaVaiSerLucrativa([FromBody] Demanda demanda)
         {
             var horaEstimada = demanda.HoraDemanda * demanda.PesoComplexidade;
-            return horaEstimada > ObterHoraTotalProjeto(demanda);
-        }        
+            var horasEstimadasUsuarios = ObterHorasEstimadasUsuarios(demanda.Usuarios);
+
+            var resposta = new Resposta() 
+            { 
+                Resultado = horaEstimada > horasEstimadasUsuarios,
+            };
+
+            if (resposta.Resultado)
+                resposta.Mensagem = $"Sim, a estimativa é que a equipe gaste um total de {horasEstimadasUsuarios} horas para um projeto de {horaEstimada} horas.";
+            else
+                resposta.Mensagem = $"Não, a estimativa é que a equipe gaste um total de {horasEstimadasUsuarios} horas para um projeto de {horaEstimada} horas.";
 
 
+            return resposta;
+        }
+
+        private double ObterHorasEstimadasUsuarios(IList<DemandaUsuario> usuarios)
+        {
+            using var repository = new UsuarioRepository();
+
+            double horas = 0;
+            foreach(var usuario in usuarios)
+                horas += (usuario.HorasEstipuladas * repository.ObterEficiencia(usuario.UsuarioId));
+
+            return horas;
+        }
 
         private double ObterHoraTotalProjeto(Demanda demanda)
         {
@@ -40,17 +90,10 @@ namespace hackaton.Controllers
             using var repository = new RelatorioHoraRepository();
             using var usuarioRepository = new UsuarioRepository();
 
-            foreach (var usuario in demanda.Usuarios)
-            {
-                var relatoriosHora = repository.ObterPorDemandaUsuario(demanda.Id, usuario.Id);
-
-                double horaTotalUsuario = 0;
-                foreach(var relatorio in relatoriosHora)
-                    horaTotalUsuario += relatorio.Horas;
-
-                horaTotal += (horaTotalUsuario * usuarioRepository.ObterEficiencia(usuario.Id));
-            }
-
+            var relatoriosHora = repository.ObterPorDemanda(demanda.Id);
+            foreach(var relatorio in relatoriosHora)
+                horaTotal += (relatorio.Horas * usuarioRepository.ObterEficiencia(relatorio.UsuarioId));
+            
             return horaTotal;
         }
         private double ObterHorasTotaisEquipe(IList<RelatorioHora> historicos)
@@ -61,8 +104,8 @@ namespace hackaton.Controllers
             double horas = 0;
             foreach (var historico in historicos)
             {
-                if (usuario.Id != historico.IdUsuario)
-                    usuario = repository.Carregar(historico.IdUsuario);
+                if (usuario.Id != historico.UsuarioId)
+                    usuario = repository.Carregar(historico.UsuarioId);
 
                 horas += (historico.Horas * usuario.PesoEficiencia);
             }
@@ -72,7 +115,7 @@ namespace hackaton.Controllers
 
         private double ObterHorasTotais(IList<RelatorioHora> historicos)
         {
-            var demandaIds = historicos.Select(x => x.IdDemanda).ToList();
+            var demandaIds = historicos.Select(x => x.DemandaId).ToList();
 
             if (demandaIds.Count == 0)
                 return 0;
